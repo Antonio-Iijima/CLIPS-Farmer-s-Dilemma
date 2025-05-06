@@ -1,3 +1,13 @@
+; NOTES
+; The following program has been modified, remodified, and rewritten
+; numerous times in an effort to stop infinite progression.
+; In this latest version I resorted to the brute-force "check every single
+; time whether an invalid version of this solution exists," which still fails.
+; I am doubtless missing some obvious mistake somewhere, but until
+; I find it, this is the current program. The logic is sound, I think,
+; but the implementation probably is not.
+
+
 (deffacts data
    (initial-fact))
 
@@ -5,6 +15,8 @@
 ; SETUP
 
 
+; Snapshot of the Dilemma at a given moment
+; Side of the river indicated by TRUE | FALSE
 (deftemplate state
    (slot valid
       (default TRUE))
@@ -23,6 +35,7 @@
       (default FALSE)))
 
 
+; Function use simply to avoid repetition
 (deffunction get-input (?prompt)
    (printout t ?prompt crlf)
    (read))
@@ -45,6 +58,7 @@
          (grain ?grain))))
 
 
+; Add as many constraints as desired
 (defrule build-invalid-states
    ?current <- (invalid-combinations ?n)
    =>
@@ -62,6 +76,13 @@
    else 
       (assert (search)))
    (retract ?current))
+
+
+; MOVEMENT
+; Moves each individually, as I could not find a syntax to
+; abstract the label of a slot as a variable.
+; Further copious use of valid state checking, 
+; which does not appear to work as intended.
 
 
 (defrule move-farmer
@@ -163,6 +184,9 @@
       (previous ?current)))
 
 
+
+; Invalid states are handled by the invalid-state builder, so
+; all that's left is breaking any cycles (notably TRUE-FALSE-TRUE)
 (defrule break-loop
    (auto-focus TRUE)
    (state
@@ -184,6 +208,7 @@
    (duplicate ?repeat (valid FALSE)))
 
 
+; Stop searching if the final state has been reached
 (defrule success
    ?success <- (state 
                   (farmer TRUE) 
@@ -193,7 +218,17 @@
    ?s <- (search)
    =>
    (retract ?s)
-   (assert (success ?success)))
+   (assert show-answer ?success))
+
+
+; Retrace the successful path (never actually got to run this, as the
+; program still continues to oscillate in an infinite cycle)
+(defrule answer
+   ?solution <- (show-answer ?success))
+   =>
+   (printout t "Move " (fact-slot-value ?success farmer))
+   (retract ?solution)
+   (assert (show-answer (fact-slot-value ?success previous)))
 
 
 
